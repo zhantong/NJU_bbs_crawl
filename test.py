@@ -1,5 +1,9 @@
 import urllib.request
 from lxml import etree
+import re
+
+url_split=re.compile(r'board=(.*?)&file=(.*?)&num=(\d+)$')
+
 headers={
 	'Host': 'bbs.nju.edu.cn',
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36',
@@ -20,21 +24,24 @@ def get_board_list():
 		print(name)
 
 def get_post_list(board_id,start=''):
-	s=urllib.request.urlopen('http://bbs.nju.edu.cn/bbstdoc?board=M_Logistic'+'&start='+start)
+	s=urllib.request.urlopen('http://bbs.nju.edu.cn/bbsdoc?board=M_Logistic&type=doc'+'&start='+start)
 	con=s.read().decode('gb2312')
 	root=etree.HTML(con)
 	trs=root.xpath('//tr')
 	for tr in trs[1:]:
 		tds=tr.findall('td')
-		if not tds[0].text:
+		if tds[0].text==None or not tds[0].text.isdigit():
 			continue
 		no=tds[0].text
 		author=tds[2].find('a').text
-		date=tds[3].text
-		a_title=tds[4].find('a')
-		id=a_title.get('href').rsplit('=',1)[-1]
-		title=a_title.text[2:]
-		print(id)
+		date=tds[4].find('nobr').text
+		a_title=tds[4].find('nobr/td/a')
+		t=url_split.findall(a_title.get('href'))[0]
+		board=t[0]
+		file=t[1]
+		num=t[2]
+		title=a_title.text
+		print(title)
 
 def get_post():
 	s=urllib.request.urlopen('http://bbs.nju.edu.cn/bbstcon?board=M_Logistic&file=M.1441702873.A')
@@ -48,4 +55,4 @@ def get_post():
 		con=table.find('.//textarea').text
 		print(author)
 if __name__=='__main__':
-	get_post()
+	get_post_list('aaa')
