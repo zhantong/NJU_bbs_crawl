@@ -3,6 +3,8 @@ from lxml import etree
 import re
 
 url_split=re.compile(r'board=(.*?)&file=(.*?)&num=(\d+)$')
+content_split=re.compile(r'2015\)\s+(.*?)\s+\[.*?来源.*?\[FROM: (.*?)\]',re.S)
+modify=re.compile(r'修改:．(.*?) 於 (.*?) 修改本文．\[FROM: (.*?)\]')
 
 headers={
 	'Host': 'bbs.nju.edu.cn',
@@ -44,11 +46,13 @@ def get_post_list(board_id,start=''):
 		print(title)
 
 def get_post():
-	s=urllib.request.urlopen('http://bbs.nju.edu.cn/bbscon?board=M_Logistic&file=M.1441702873.A&num=11750')
+	s=urllib.request.urlopen('http://bbs.nju.edu.cn/bbscon?board=M_Job&file=M.1441416413.A&num=11981')
 	con=s.read().decode('gb2312')
 	root=etree.HTML(con)
 	content=root.find('.//textarea').text
+	con=content_split.findall(content)[0]
+	ip=modify.findall(content)
 	gid=root.find('.//center/a[4]').get('href').rsplit('=',1)[-1]
-	print(gid)
+	print(ip)
 if __name__=='__main__':
 	get_post()
