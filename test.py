@@ -5,6 +5,8 @@ import re
 url_split=re.compile(r'board=(.*?)&file=(.*?)&num=(\d+)$')
 content_split=re.compile(r'2015\)\s+(.*?)\s+\[.*?来源.*?\[FROM: (.*?)\]',re.S)
 modify=re.compile(r'修改:．(.*?) 於 (.*?) 修改本文．\[FROM: (.*?)\]')
+download=re.compile(r'http://bbs\.nju\.edu\.cn/file/(.*?)/(.*?)\s')
+
 
 headers={
 	'Host': 'bbs.nju.edu.cn',
@@ -53,6 +55,9 @@ def get_post():
 	con=content_split.findall(content)[0]
 	ip=modify.findall(content)
 	gid=root.find('.//center/a[4]').get('href').rsplit('=',1)[-1]
-	print(ip)
+	dl_list=download.findall(content)
+	print(dl_list)
+
+
 if __name__=='__main__':
 	get_post()
