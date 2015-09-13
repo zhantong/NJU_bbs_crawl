@@ -36,5 +36,16 @@ def get_post_list(board_id,start=''):
 		title=a_title.text[2:]
 		print(id)
 
+def get_post():
+	s=urllib.request.urlopen('http://bbs.nju.edu.cn/bbstcon?board=M_Logistic&file=M.1441702873.A')
+	con=s.read().decode('gb2312')
+	root=etree.HTML(con)
+	tables=root.xpath('/html/body/center[1]/table')
+	for table in tables:
+		a_s=table.findall('./tr/td/a')
+		id=a_s[0].get('href').rsplit('=',1)[-1]
+		author=a_s[2].text
+		con=table.find('.//textarea').text
+		print(author)
 if __name__=='__main__':
-	get_post_list('aaa')
+	get_post()
