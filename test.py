@@ -2,6 +2,7 @@ import urllib.request
 from lxml import etree
 import re
 import mysql.connector
+import time
 
 url_split=re.compile(r'board=(.*?)&file=(.*?)&num=(\d+)$')
 content_split=re.compile(r'2015\)\s+(.*?)\s+\[.*?来源.*?\[FROM: (.*?)\]',re.S)
@@ -25,9 +26,15 @@ class NJU_BBS():
 	def __init__(self):
 		self.cnx=mysql.connector.connect(**db)
 		self.cursor=self.cnx.cursor()
+		self.boards={}
 	def get_html(self,url):
 		get=urllib.request.urlopen(url)
-		content=get.read().decode('gb2312')
+		try:
+			content=get.read().decode('gb2312','ignore')
+		except Exception as e:
+			print(e)
+			print(url)
+			print(get.getcode())
 		root=etree.HTML(content)
 		return root
 	def get_board_list(self):
@@ -72,6 +79,7 @@ class NJU_BBS():
 		self.cnx.commit()
 
 	def get_post_list(self,board,start=''):
+		post_list=[]
 		url='http://bbs.nju.edu.cn/bbsdoc?&type=doc'+'&board='+board+'&start='+start
 		root=self.get_html(url)
 		trs=root.xpath('//tr')
@@ -79,17 +87,72 @@ class NJU_BBS():
 			tds=tr.findall('td')
 			if tds[0].text==None or not tds[0].text.isdigit():
 				continue
-			no=tds[0].text
-			author=tds[2].find('a').text
-			date=tds[4].find('nobr').text
 			a_title=tds[4].find('nobr/td/a')
 			t=url_split.findall(a_title.get('href'))[0]
-			board=t[0]
-			file=t[1]
-			num=t[2]
-			title=a_title.text
-			print(title)
+			post={
+				'no':tds[0].text,
+				'author':tds[2].find('a').text,
+				'date':tds[4].find('nobr').text,
+				'board':t[0],
+				'file':t[1],
+				'num':t[2],
+				'title':a_title.text
+			}
+			post_list.append(post)
+		return post_list
 
+	def query_board_list_from_db(self):
+		query="""
+		SELECT
+		no,board
+		FROM
+		board
+		"""
+		self.cursor.execute(query)
+		for (no,board) in self.cursor:
+			self.boards[board]=no
+
+	def get_all_posts(self):
+		self.post_list_db()
+		self.query_board_list_from_db()
+		for board in self.boards:
+			post_list=self.get_post_list(board)
+			print(post_list)
+			start=int(post_list[0]['no'])
+			while start>=0:
+				start-=20
+				post_list=self.get_post_list(board,str(start))
+				print(post_list[0]['no'],post_list[-1]['no'])
+				self.save_post_list_to_db(post_list)
+				time.sleep(0.6)
+
+	def post_list_db(self):
+		drop="""
+		DROP TABLE IF EXISTS post_list
+		"""
+		create="""
+		CREATE TABLE `post_list` (
+			`no` int(6) NOT NULL,
+			`author` varchar(20) NOT NULL,
+			`date` varchar(20) NOT NULL,
+			`board` varchar(20) NOT NULL,
+			`file` varchar(20) NOT NULL PRIMARY KEY,
+			`num` int(6) NOT NULL,
+			`title` varchar(40) NOT NULL
+			)
+		"""
+		self.cursor.execute(drop)
+		self.cursor.execute(create)
+	def save_post_list_to_db(self,post_list):
+		insert="""
+		INSERT INTO post_list
+		(no,author,date,board,file,num,title)
+		VALUES
+		('%(no)s','%(author)s','%(date)s','%(board)s','%(file)s','%(num)s','%(title)s')
+		"""
+		for post in post_list:
+			self.cursor.execute(insert%post)
+		self.cnx.commit()
 
 	def get_post(self,board,file,num=''):
 		url='http://bbs.nju.edu.cn/bbscon?board='+board+'&file='+file+'&num='+num
@@ -104,4 +167,4 @@ class NJU_BBS():
 
 if __name__=='__main__':
 	bbs=NJU_BBS()
-	print(bbs.save_board_list_to_db())
+	bbs.get_all_posts()
