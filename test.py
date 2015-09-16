@@ -96,7 +96,7 @@ class NJU_BBS():
 				'board':t[0],
 				'file':t[1],
 				'num':t[2],
-				'title':a_title.text
+				'title':re.escape(a_title.text)
 			}
 			post_list.append(post)
 		return post_list
@@ -138,7 +138,7 @@ class NJU_BBS():
 			`board` varchar(20) NOT NULL,
 			`file` varchar(20) NOT NULL PRIMARY KEY,
 			`num` int(6) NOT NULL,
-			`title` varchar(40) NOT NULL
+			`title` varchar(60) NOT NULL
 			)
 		"""
 		self.cursor.execute(drop)
